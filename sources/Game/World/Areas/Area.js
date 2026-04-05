@@ -150,7 +150,10 @@ export class Area
                 if(this.frustum.isIn === false || this.frustum.isIn === null)
                 {
                     for(const object3D of this.objects.hideable)
-                        object3D.visible = true
+                    {
+                        if(!object3D.userData.alwaysHidden)
+                            object3D.visible = true
+                    }
 
                     if(typeof helper !== 'undefined')
                         helper.material.color.set('#44ff88').multiplyScalar(2)
@@ -164,7 +167,10 @@ export class Area
                 if(this.frustum.isIn === true || this.frustum.isIn === null)
                 {
                     for(const object3D of this.objects.hideable)
-                        object3D.visible = false
+                    {
+                        if(!object3D.userData.alwaysHidden)
+                            object3D.visible = false
+                    }
 
                     if(typeof helper !== 'undefined')
                         helper.material.color.set('#ff4488').multiplyScalar(2)
