@@ -24,42 +24,62 @@ export class LandingArea extends Area
 
     hideTextVisuals()
     {
-        const children = [...this.model.children]
-        for(const child of children)
+        // Hide the text mesh from rendering but keep it in the scene graph
+        const hideTextRecursive = (obj) =>
         {
-            if(child.name.includes("Text.003-Text.001"))
+            if(obj.name && obj.name.includes("Text.003-Text.001"))
             {
-                child.visible = false
-                child.userData.alwaysHidden = true
+                // Make it completely invisible but DON'T remove from scene
+                obj.visible = false
+                obj.renderOrder = -999 // Ensure it renders last (or not at all)
+                
+                // If it has a material, make it fully transparent
+                if(obj.material)
+                {
+                    obj.material.transparent = true
+                    obj.material.opacity = 0
+                    obj.material.depthWrite = false
+                }
+                
+                console.log('Text hidden:', obj.name)
+            }
+
+            if(obj.children && obj.children.length > 0)
+            {
+                for(const child of obj.children)
+                {
+                    hideTextRecursive(child)
+                }
             }
         }
+
+        hideTextRecursive(this.model)
     }
 
     setLetters()
-{
-    const references = this.references.items.get('letters')
-    
-    // Exit gracefully if no letters found
-    if(!references || references.length === 0)
     {
-        console.warn('No letters references found - physics will still work')
-        return
-    }
-
-    for(const reference of references)
-    {
-        const physical = reference.userData.object?.physical
-        if(!physical || !physical.colliders)
-            continue
-            
-        physical.colliders[0].setActiveEvents(this.game.RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS)
-        physical.colliders[0].setContactForceEventThreshold(5)
-        physical.onCollision = (force, position) =>
+        const references = this.references.items.get('letters')
+        
+        if(!references || references.length === 0)
         {
-            this.game.audio.groups.get('hitBrick').playRandomNext(force, position)
+            console.warn('No letters references found')
+            return
+        }
+
+        for(const reference of references)
+        {
+            const physical = reference.userData.object?.physical
+            if(!physical || !physical.colliders)
+                continue
+                
+            physical.colliders[0].setActiveEvents(this.game.RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS)
+            physical.colliders[0].setContactForceEventThreshold(5)
+            physical.onCollision = (force, position) =>
+            {
+                this.game.audio.groups.get('hitBrick').playRandomNext(force, position)
+            }
         }
     }
-}
 
     setKiosk()
     {
@@ -73,7 +93,6 @@ export class LandingArea extends Area
             {
                 this.game.inputs.interactiveButtons.clearItems()
                 this.game.modals.open('map')
-                // interactivePoint.hide()
             },
             () =>
             {
@@ -88,11 +107,6 @@ export class LandingArea extends Area
                 this.game.inputs.interactiveButtons.removeItems(['interact'])
             }
         )
-
-        // this.game.map.items.get('map').events.on('close', () =>
-        // {
-        //     interactivePoint.show()
-        // })
     }
 
     setControls()
@@ -123,7 +137,6 @@ export class LandingArea extends Area
             }
         )
 
-        // Menu instance
         const menuInstance = this.game.menu.items.get('controls')
 
         menuInstance.events.on('close', () =>
@@ -146,7 +159,6 @@ export class LandingArea extends Area
     {
         const position = this.references.items.get('bonfireHashes')[0].position
 
-        // Particles
         let particles = null
         {
             const emissiveMaterial = this.game.materials.getFromName('emissiveOrangeRadialGradient')
@@ -155,7 +167,6 @@ export class LandingArea extends Area
             const elevation = uniform(5)
             const positions = new Float32Array(count * 3)
             const scales = new Float32Array(count)
-    
     
             for(let i = 0; i < count; i++)
             {
@@ -206,7 +217,6 @@ export class LandingArea extends Area
             this.game.scene.add(particles)
         }
 
-        // Hashes
         {
             const alphaNode = Fn(() =>
             {
@@ -234,11 +244,9 @@ export class LandingArea extends Area
             mesh.material = material
         }
 
-        // Burn
         const burn = this.references.items.get('bonfireBurn')[0]
         burn.visible = false
 
-        // Interactive point
         this.game.interactivePoints.create(
             this.references.items.get('bonfireInteractivePoint')[0].position,
             'Res(e)t',
@@ -250,7 +258,6 @@ export class LandingArea extends Area
 
                 gsap.delayedCall(2, () =>
                 {
-                    // Bonfire
                     particles.visible = true
                     burn.visible = true
                     this.game.ticker.wait(2, () =>
@@ -259,7 +266,6 @@ export class LandingArea extends Area
                         particles.geometry.boundingSphere.radius = 2
                     })
 
-                    // Sound
                     this.game.audio.groups.get('campfire').items[0].positions.push(position)
                 })
             },
